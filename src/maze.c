@@ -1,13 +1,12 @@
 #include <stdlib.h>
 #include "maze.h"
 
-maze_t *init_maze(size_t cols, size_t rows, int cell_size, int line_weight) {
+maze_t *init_maze(size_t cols, size_t rows, int cell_size) {
 	maze_t *maze = malloc(sizeof(maze_t));
 	if (maze == NULL)
 		return NULL;
 
 	maze->cell_size = cell_size;
-	maze->line_weight = line_weight;
 	maze->cols = cols;
 	maze->rows = rows;
 	maze->cells = calloc(rows * cols, sizeof(cell_t));
@@ -26,6 +25,9 @@ maze_t *init_maze(size_t cols, size_t rows, int cell_size, int line_weight) {
 		}
 	}
 
+	cell_t *cell = cell_at(maze, 2, 2);
+	cell->top = false;
+
 	return maze;
 }
 
@@ -38,60 +40,46 @@ bitmap_t *maze_to_img(maze_t *maze, int scale) {
 	if (bitmap == NULL)
 		return NULL;
 	
-	bitmap->width = (maze->cols * maze->cell_size * scale);
-	bitmap->height = (maze->rows * maze->cell_size * scale);
+	bitmap->width = ((maze->cols * maze->cell_size) + maze->cols * 2) * scale;
+	bitmap->height = ((maze->rows * maze->cell_size) + maze->rows * 2) * scale;
 	bitmap->pixels = calloc(bitmap->width * bitmap->height, sizeof(pixel_t));
 	
 	for (int x = 0; x < bitmap->width; x++) {
 		for (int y = 0; y < bitmap->height; y++) {
-			cell_t *cell = cell_at(maze, (x / maze->rows) % maze->rows, (y / maze->cols) % maze->cols);
+			cell_t *cell = cell_at(maze, (x / (maze->cell_size * 2 * scale)) % maze->rows, (y / (maze->cell_size * 2 * scale)) % maze->cols);
 			if (cell == NULL)
 				return NULL;
-		
+			
 			pixel_t *pixel = pixel_at(bitmap, x, y);
 			// TOP
-			if (cell->top) {
-				if ((x >= cell->x * maze->cell_size) && 
-					(x < (cell->x + 1) * maze->cell_size) &&
-					(y <= (cell->y * maze->cell_size * scale) + maze->line_weight) &&
-					(y > cell->y * maze->cell_size * scale) - maze->line_weight) {
-						pixel->red = 0;
-						pixel->green = 0;
-						pixel->blue = 255;	
-				}
+			if (cell->top && (y == (cell->y * maze->cell_size * 2 * scale))) {
+				pixel->red = 255;
+				pixel->green = 0;
+				pixel->blue = 0;	
 			}
-			//RIGHT
-			if (cell->right) {
-				if ((y >= cell->y * maze->cell_size) && 
-					(y < (cell->y + 1) * maze->cell_size) &&
-					(x <= ((cell->x + 1) * maze->cell_size * scale) + maze->line_weight) &&
-					(x > cell->x * maze->cell_size * scale) - maze->line_weight) {
-						pixel->red = 0;
-						pixel->green = 0;
-						pixel->blue = 255;	
-				}
+			// RIGHT
+			else if (cell->right && (x == ((cell->x + 1) * maze->cell_size * 2 * scale) - 1)) {
+				pixel->red = 255;
+				pixel->green = 0;
+				pixel->blue = 0;	
+			}
+			// BOTTOM
+			else if (cell->bottom && (y == ((cell->y + 1) * maze->cell_size * 2 * scale) - 1)) {
+				pixel->red = 255;
+				pixel->green = 0;
+				pixel->blue = 0;	
 			}
 			// LEFT
-			/*
-			if (cell->left) {
-				if ((y >= cell->y * maze->cell_size) && 
-					(y < (cell->y + 1) * maze->cell_size) &&
-					(x <= (cell->x * maze->cell_size * scale) + maze->line_weight) &&
-					(x > cell->x * maze->cell_size * scale) - maze->line_weight) {
-						pixel->red = 0;
-						pixel->green = 0;
-						pixel->blue = 255;	
-				}
-			}
-			*/
+			else if (cell->left && (x == (cell->x * maze->cell_size * 2 * scale))) {
+				pixel->red = 255;
+				pixel->green = 0;
+				pixel->blue = 0;	
+			}	
 			else {
 				pixel->red = 0;
 				pixel->green = 0;
 				pixel->blue = 0;
 			}
-			// RIGHT
-			// BOTTOM
-			// LEFT
 		}
 	}
 

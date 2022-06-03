@@ -6,7 +6,7 @@
    
 int main ()
 {
-	maze_t *maze = init_maze(50, 50, 50, 5);
+	maze_t *maze = init_maze(10, 10, 10);
     bitmap_t *bitmap = maze_to_img(maze, 1);
 
     if (save_png_to_file (bitmap, "maze.png")) {
