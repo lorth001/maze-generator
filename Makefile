@@ -33,7 +33,7 @@ $(OBJ)/%.o: $(SRC)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	$(RM) -r $(BINDIR)/* $(OBJ)/*
+	$(RM) -r $(BINDIR)/* $(OBJ)/* *.png *.mp4
 
 valgrind:
 	-valgrind -s --leak-check=full --keep-debuginfo=yes --track-origins=yes $(BIN)

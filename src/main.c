@@ -6,20 +6,12 @@
    
 int main ()
 {
-	maze_t *maze = init_maze(20, 20, 10);
-	cell_t *maze_start = cell_at(maze, 0, 0);
+	maze_t *maze = init_maze(10, 10, 10);
 
-	maze = create_maze(maze, maze_start);
-
-    bitmap_t *bitmap = maze_to_img(maze, 5);
-
-    if (save_png_to_file (bitmap, "maze.png"))
-		fprintf (stderr, "Error writing file.\n");
+	maze = create_maze(maze, 0, 0);
 
     free(maze->cells);
 	free(maze);
-	free(bitmap->pixels);
-	free(bitmap);
 
     return 0;
 }

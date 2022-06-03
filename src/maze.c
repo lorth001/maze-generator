@@ -35,7 +35,34 @@ cell_t *cell_at(maze_t *maze, int x, int y) {
 	return maze->cells + maze->cols * y + x;
 }
 
-cell_t *check_neighbors(maze_t *maze, cell_t *cell) {
+void remove_walls(cell_t *cell_a, cell_t *cell_b) {
+	int delta_x = cell_a->x - cell_b->x;
+	int delta_y = cell_a->y - cell_b->y;
+
+	// X
+	if (delta_x == 1) {
+		cell_a->left = false;
+		cell_b->right = false;
+	}
+	else if (delta_x == -1) {
+		cell_a->right = false;
+		cell_b->left = false;
+	}
+
+	// Y
+	if (delta_y == 1) {
+		cell_a->top = false;
+		cell_b->bottom = false;
+	}
+	else if (delta_y == -1) {
+		cell_a->bottom = false;
+		cell_b->top = false;
+	}
+}
+
+cell_t *check_neighbors(maze_t *maze, cell_t *cell, int count) {
+	cell_t *start = cell_at(maze, 0, 0);
+	printf("x: %i, y: %i, top: %i, right: %i, bottom: %i, left: %i, visited: %i\n", start->x, start->y, start->top, start->right, start->bottom, start->left, start->visited);
 	int x = cell->x;
 	int y = cell->y;
 
@@ -47,11 +74,14 @@ cell_t *check_neighbors(maze_t *maze, cell_t *cell) {
 	int random_num = rand() % 4;
 
 	for (int i = 0; i < 4; i++) {
-		//printf("%i\n", (random_num + i) % 4);
 		cell_t *random_neighbor = neighbors[(random_num + i) % 4];
 		if (random_neighbor && !random_neighbor->visited) {
+			printf("\n\nCOUNT: %i\ncell->x: %i, cell->y: %i, visited: %i\nneighbor->x: %i, neighbor->y: %i, visited: %i\n", count, cell->x, cell->y, cell->visited, random_neighbor->x, random_neighbor->y, random_neighbor->visited);
 			random_neighbor->visited = true;
-			check_neighbors(maze, random_neighbor);
+			remove_walls(cell, random_neighbor);
+			maze_to_img(maze, count, 5);
+			
+			check_neighbors(maze, random_neighbor, ++count);
 			return random_neighbor;
 		}
 	}
@@ -59,19 +89,24 @@ cell_t *check_neighbors(maze_t *maze, cell_t *cell) {
 	return NULL;
 }
 
-maze_t *create_maze(maze_t *maze, cell_t *current) {
-	current->visited = true;
+maze_t *create_maze(maze_t *maze, int x, int y) {
+	cell_t *start = cell_at(maze, 0, 0);
+	printf("x: %i, y: %i, top: %i, right: %i, bottom: %i, left: %i, visited: %i\n", start->x, start->y, start->top, start->right, start->bottom, start->left, start->visited);
+	start->visited = true;
 	srand(time(NULL));
 	
-	check_neighbors(maze, current);
+	printf("x: %i, y: %i, top: %i, right: %i, bottom: %i, left: %i, visited: %i\n", start->x, start->y, start->top, start->right, start->bottom, start->left, start->visited);
+	check_neighbors(maze, start, 0);
+
+	system("ffmpeg -i maze_%d.png -vcodec libx265 -crf 28 -filter:v 'setpts=3.0*PTS' video.mp4 >null 2>null");
 
 	return maze;
 }
 
-bitmap_t *maze_to_img(maze_t *maze, int scale) {
+int maze_to_img(maze_t *maze, int count, int scale) {
 	bitmap_t *bitmap = malloc(sizeof(bitmap_t));
 	if (bitmap == NULL)
-		return NULL;
+		return -1;
 	
 	bitmap->width = ((maze->cols * maze->cell_size) + maze->cols * 2) * scale;
 	bitmap->height = ((maze->rows * maze->cell_size) + maze->rows * 2) * scale;
@@ -81,7 +116,7 @@ bitmap_t *maze_to_img(maze_t *maze, int scale) {
 		for (int y = 0; y < bitmap->height; y++) {
 			cell_t *cell = cell_at(maze, (x / ((maze->cell_size + 2) * scale)) % maze->rows, (y / ((maze->cell_size + 2) * scale)) % maze->cols);
 			if (cell == NULL)
-				return NULL;
+				return -1;
 
 			pixel_t *pixel = pixel_at(bitmap, x, y);
 			// TOP
@@ -121,5 +156,12 @@ bitmap_t *maze_to_img(maze_t *maze, int scale) {
 		}
 	}
 
-	return bitmap;
+	char filename[32];
+	sprintf(filename, "maze_%i.png", count);
+	save_png_to_file(bitmap, filename);
+
+	free(bitmap->pixels);
+	free(bitmap);
+
+	return 0;
 }

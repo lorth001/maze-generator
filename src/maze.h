@@ -13,6 +13,7 @@ typedef struct {
 	bool bottom;
 	bool left;
 	bool visited;
+	bool current;
 } cell_t;
 
 typedef struct {
@@ -26,10 +27,12 @@ cell_t *cell_at(maze_t *maze, int x, int y);
 
 maze_t *init_maze(size_t cols, size_t rows, int cell_size);
 
-bitmap_t *maze_to_img(maze_t *maze, int scale);
+int maze_to_img(maze_t *maze, int count, int scale);
 
-cell_t *check_neighbors(maze_t *maze, cell_t *cell);
+void remove_walls(cell_t *cell_a, cell_t *cell_b);
 
-maze_t *create_maze(maze_t *maze, cell_t *current);
+cell_t *check_neighbors(maze_t *maze, cell_t *cell, int iter);
+
+maze_t *create_maze(maze_t *maze, int x, int y);
 
 #endif
