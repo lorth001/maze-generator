@@ -6,8 +6,8 @@
    
 int main ()
 {
-	maze_t *maze = init_maze(10, 10, 10);
-    bitmap_t *bitmap = maze_to_img(maze, 1);
+	maze_t *maze = init_maze(20, 20, 10);
+    bitmap_t *bitmap = maze_to_img(maze, 5);
 
     if (save_png_to_file (bitmap, "maze.png")) {
 	fprintf (stderr, "Error writing file.\n");
