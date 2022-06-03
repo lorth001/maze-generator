@@ -22,6 +22,7 @@ maze_t *init_maze(size_t cols, size_t rows, int cell_size) {
 			cell->right = true;
 			cell->bottom = true;
 			cell->left = true;
+			cell->visited = false;
 		}
 	}
 
@@ -29,7 +30,42 @@ maze_t *init_maze(size_t cols, size_t rows, int cell_size) {
 }
 
 cell_t *cell_at(maze_t *maze, int x, int y) {
+	if (x < 0 || y < 0 || x > maze->cols - 1 || x > maze->rows - 1)
+		return NULL;
 	return maze->cells + maze->cols * y + x;
+}
+
+cell_t *check_neighbors(maze_t *maze, cell_t *cell) {
+	int x = cell->x;
+	int y = cell->y;
+
+	cell_t *neighbors[4] = { cell_at(maze, x, y - 1),
+						cell_at(maze, x + 1, y),
+						cell_at(maze, x, y + 1),
+						cell_at(maze, x - 1, y)	};
+	
+	int random_num = rand() % 4;
+
+	for (int i = 0; i < 4; i++) {
+		//printf("%i\n", (random_num + i) % 4);
+		cell_t *random_neighbor = neighbors[(random_num + i) % 4];
+		if (random_neighbor && !random_neighbor->visited) {
+			random_neighbor->visited = true;
+			check_neighbors(maze, random_neighbor);
+			return random_neighbor;
+		}
+	}
+
+	return NULL;
+}
+
+maze_t *create_maze(maze_t *maze, cell_t *current) {
+	current->visited = true;
+	srand(time(NULL));
+	
+	check_neighbors(maze, current);
+
+	return maze;
 }
 
 bitmap_t *maze_to_img(maze_t *maze, int scale) {
@@ -72,6 +108,11 @@ bitmap_t *maze_to_img(maze_t *maze, int scale) {
 				pixel->green = 0;
 				pixel->blue = 0;	
 			}	
+			else if (cell->visited) {
+				pixel->red = 0;
+				pixel->green = 255;
+				pixel->blue = 0;
+			}
 			else {
 				pixel->red = 0;
 				pixel->green = 0;
