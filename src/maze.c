@@ -23,14 +23,46 @@ maze_t *init_maze(size_t cols, size_t rows, int cell_size) {
 			cell->bottom = true;
 			cell->left = true;
 			cell->visited = false;
+			cell->current = false;
 		}
 	}
 
 	return maze;
 }
 
+stack_t *init_stack(int capacity) {
+	stack_t *stack = malloc(sizeof(stack_t));
+	stack->top = -1;
+	stack->capacity = capacity;
+	stack->items = malloc(sizeof(cell_t) * capacity);
+
+	return stack;
+}
+
+bool is_empty(stack_t *stack) {
+	return stack->top == -1;
+}
+
+void push(stack_t *stack, cell_t *cell) {
+	if (stack->top == stack->capacity * -1) {
+		printf("ERROR - Stack overflow\n");
+		exit(EXIT_FAILURE);
+	}
+
+	stack->items[++stack->top] = cell;
+}
+
+cell_t *pop(stack_t *stack) {
+	if (is_empty(stack)) {
+		printf("ERROR - Stack underflow\n");
+		exit(EXIT_FAILURE);
+	}
+
+	return stack->items[stack->top--];
+}
+
 cell_t *cell_at(maze_t *maze, int x, int y) {
-	if (x < 0 || y < 0 || x > maze->cols - 1 || x > maze->rows - 1)
+	if (x < 0 || y < 0 || x > maze->cols - 1 || y > maze->rows - 1)
 		return NULL;
 	return maze->cells + maze->cols * y + x;
 }
@@ -60,11 +92,11 @@ void remove_walls(cell_t *cell_a, cell_t *cell_b) {
 	}
 }
 
-cell_t *check_neighbors(maze_t *maze, cell_t *cell, int count) {
-	cell_t *start = cell_at(maze, 0, 0);
-	printf("x: %i, y: %i, top: %i, right: %i, bottom: %i, left: %i, visited: %i\n", start->x, start->y, start->top, start->right, start->bottom, start->left, start->visited);
+cell_t *check_neighbors(maze_t *maze, stack_t *visited, cell_t *cell, int count) {
 	int x = cell->x;
 	int y = cell->y;
+
+	cell->current = false;
 
 	cell_t *neighbors[4] = { cell_at(maze, x, y - 1),
 						cell_at(maze, x + 1, y),
@@ -75,15 +107,27 @@ cell_t *check_neighbors(maze_t *maze, cell_t *cell, int count) {
 
 	for (int i = 0; i < 4; i++) {
 		cell_t *random_neighbor = neighbors[(random_num + i) % 4];
+		if (random_neighbor)
 		if (random_neighbor && !random_neighbor->visited) {
-			printf("\n\nCOUNT: %i\ncell->x: %i, cell->y: %i, visited: %i\nneighbor->x: %i, neighbor->y: %i, visited: %i\n", count, cell->x, cell->y, cell->visited, random_neighbor->x, random_neighbor->y, random_neighbor->visited);
+			push(visited, cell);
+
 			random_neighbor->visited = true;
+			random_neighbor->current = true;
+
 			remove_walls(cell, random_neighbor);
 			maze_to_img(maze, count, 5);
 			
-			check_neighbors(maze, random_neighbor, ++count);
+			check_neighbors(maze, visited, random_neighbor, ++count);
 			return random_neighbor;
 		}
+	}
+
+	if (!is_empty(visited)) {
+		cell = pop(visited);
+		cell->current = true;
+		maze_to_img(maze, count, 5);
+
+		check_neighbors(maze, visited, cell, ++count);
 	}
 
 	return NULL;
@@ -91,14 +135,19 @@ cell_t *check_neighbors(maze_t *maze, cell_t *cell, int count) {
 
 maze_t *create_maze(maze_t *maze, int x, int y) {
 	cell_t *start = cell_at(maze, 0, 0);
-	printf("x: %i, y: %i, top: %i, right: %i, bottom: %i, left: %i, visited: %i\n", start->x, start->y, start->top, start->right, start->bottom, start->left, start->visited);
 	start->visited = true;
+
+	stack_t *visited = init_stack(maze->cols * maze->rows);
+
 	srand(time(NULL));
 	
-	printf("x: %i, y: %i, top: %i, right: %i, bottom: %i, left: %i, visited: %i\n", start->x, start->y, start->top, start->right, start->bottom, start->left, start->visited);
-	check_neighbors(maze, start, 0);
+	check_neighbors(maze, visited, start, 0);
 
-	system("ffmpeg -i maze_%d.png -vcodec libx265 -crf 28 -filter:v 'setpts=3.0*PTS' video.mp4 >null 2>null");
+	free(visited->items);
+	free(visited);
+
+	system("ffmpeg -i maze_%d.png -vcodec libx265 -crf 28 -filter:v 'setpts=6.0*PTS' video_slow.mp4 >/dev/null 2>/dev/null");
+	system("ffmpeg -i maze_%d.png -vcodec libx265 -crf 28 -filter:v 'setpts=2.0*PTS' video_fast.mp4 >/dev/null 2>/dev/null");
 
 	return maze;
 }
@@ -142,6 +191,11 @@ int maze_to_img(maze_t *maze, int count, int scale) {
 				pixel->red = 255;
 				pixel->green = 0;
 				pixel->blue = 0;	
+			}
+			else if (cell->current) {
+				pixel->red = 0;
+				pixel->green = 0;
+				pixel->blue = 255;
 			}	
 			else if (cell->visited) {
 				pixel->red = 0;

@@ -6,7 +6,7 @@
    
 int main ()
 {
-	maze_t *maze = init_maze(10, 10, 10);
+	maze_t *maze = init_maze(100, 100, 1);
 
 	maze = create_maze(maze, 0, 0);
 
